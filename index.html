@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendario de Plazos Hábiles Judiciales — Argentina 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F6F2;
+    --surface: #FFFFFF;
+    --surface2: #F0EEE9;
+    --border: #E2DDD6;
+    --border2: #C8C2B8;
+    --text: #1A1916;
+    --text2: #6B6760;
+    --text3: #9E9A94;
+    --green: #2D6A4F;
+    --green-bg: #D8F3DC;
+    --amber: #92400E;
+    --amber-bg: #FEF3C7;
+    --violet: #4C1D95;
+    --violet-bg: #EDE9FE;
+    --red: #991B1B;
+    --red-bg: #FEE2E2;
+    --blue: #1E3A8A;
+    --blue-bg: #DBEAFE;
+    --salmon: #7C2D12;
+    --salmon-bg: #FFEDD5;
+    --accent: #2D6A4F;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  .container { max-width: 780px; margin: 0 auto; }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  header p {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+  .badge-header {
+    display: inline-block;
+    background: var(--green-bg);
+    color: var(--green);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-top: 8px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    background: var(--surface2);
+    padding: 4px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .tab {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text2);
+    transition: all 0.15s;
+  }
+  .tab.active {
+    background: var(--surface);
+    color: var(--green);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+  .card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 14px;
+    letter-spacing: -0.2px;
+  }
+
+  .row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 12px; }
+  .field { flex: 1; min-width: 130px; }
+  label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 5px; font-weight: 500; }
+
+  input[type=date], input[type=number], input[type=text], select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+
+  .btn {
+    padding: 9px 20px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text);
+    transition: all 0.15s;
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+  }
+  .btn-primary:hover { background: #245a42; border-color: #245a42; }
+
+  .check-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .check-row label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 0;
+  }
+  input[type=checkbox] { accent-color: var(--green); width: 14px; height: 14px; }
+
+  .result-box {
+    background: var(--green-bg);
+    border: 1px solid #A7C4AE;
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-top: 14px;
+  }
+  .result-label { font-size: 11px; color: var(--green); font-weight: 500; margin-bottom: 4px; font-family: 'DM Mono', monospace; }
+  .result-date { font-size: 26px; font-weight: 600; color: var(--green); letter-spacing: -1px; }
+  .result-name { font-size: 12px; color: var(--green); margin-top: 3px; opacity: 0.8; }
+
+  .note-box {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.7;
+    border-left: 3px solid var(--border2);
+  }
+
+  /* Calendario */
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .cal-nav {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 5px 12px;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--text);
+    transition: background 0.15s;
+  }
+  .cal-nav:hover { background: var(--border); }
+  .cal-title { font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .cal-dow { text-align: center; font-size: 11px; color: var(--text3); padding: 4px 0; font-weight: 600; font-family: 'DM Mono', monospace; }
+  .cal-day {
+    text-align: center;
+    font-size: 13px;
+    padding: 7px 3px;
+    border-radius: var(--radius-sm);
+    min-height: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: default;
+    transition: opacity 0.1s;
+  }
+  .cal-day.otro-mes { color: var(--text3); opacity: 0.4; }
+  .cal-day.fin-semana { color: var(--text3); background: var(--surface2); }
+  .cal-day.habil { background: var(--green-bg); color: var(--green); }
+  .cal-day.feriado { background: var(--amber-bg); color: var(--amber); font-weight: 600; }
+  .cal-day.nolaborable { background: var(--violet-bg); color: var(--violet); font-weight: 600; }
+  .cal-day.feria { background: var(--salmon-bg); color: var(--salmon); }
+  .cal-day.hoy { outline: 2px solid var(--green); outline-offset: -2px; font-weight: 700; }
+  .cal-day.inicio-plazo { background: var(--blue-bg); color: var(--blue); font-weight: 700; }
+  .cal-day.en-plazo { background: #E0EEFF; color: #2563EB; }
+  .cal-day.vencimiento { background: var(--red-bg); color: var(--red); font-weight: 700; }
+  .cal-day .dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; margin-top: 2px; opacity: 0.5; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  /* Feriados */
+  .feriado-list { max-height: 320px; overflow-y: auto; }
+  .feriado-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    gap: 8px;
+  }
+  .feriado-item:last-child { border-bottom: none; }
+  .feriado-info { flex: 1; }
+  .feriado-fecha { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); }
+  .feriado-motivo { color: var(--text); margin-top: 1px; }
+  .feriado-tipo {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .tipo-feriado { background: var(--amber-bg); color: var(--amber); }
+  .tipo-nolaborable { background: var(--violet-bg); color: var(--violet); }
+  .tipo-feria { background: var(--salmon-bg); color: var(--salmon); }
+  .badge-rm { background: transparent; border: none; color: var(--text3); cursor: pointer; font-size: 16px; padding: 0 4px; }
+  .badge-rm:hover { color: var(--red); }
+
+  /* Plazos */
+  .plazo-list { max-height: 300px; overflow-y: auto; }
+  .plazo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .plazo-item:last-child { border-bottom: none; }
+  .plazo-nombre { font-weight: 500; color: var(--text); font-size: 14px; }
+  .plazo-meta { font-size: 11px; color: var(--text2); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .plazo-vence { font-size: 15px; font-weight: 600; color: var(--blue); font-family: 'DM Mono', monospace; }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+  .badge-ok { background: var(--green-bg); color: var(--green); }
+  .badge-vence { background: var(--amber-bg); color: var(--amber); }
+  .badge-vencido { background: var(--red-bg); color: var(--red); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Plazos Hábiles Judiciales</h1>
+    <p>Argentina · Feriados oficiales 2026</p>
+    <span class="badge-header">Poder Judicial</span>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('calcular',event)">Calcular plazo</button>
+    <button class="tab" onclick="showTab('calendario',event)">Calendario</button>
+    <button class="tab" onclick="showTab('feriados',event)">Feriados</button>
+    <button class="tab" onclick="showTab('plazos',event)">Mis plazos</button>
+  </div>
+
+  <!-- TAB CALCULAR -->
+  <div id="tab-calcular" class="tab-content active">
+    <div class="card">
+      <h3>Calcular vencimiento de plazo judicial</h3>
+      <div class="row">
+        <div class="field"><label>Fecha de inicio</label><input type="date" id="fecha-inicio"></div>
+        <div class="field" style="max-width:130px"><label>Días hábiles</label><input type="number" id="cant-dias" min="1" value="5"></div>
+        <div class="field"><label>Nombre del plazo (opcional)</label><input type="text" id="nombre-plazo" placeholder="Ej: Contestación demanda"></div>
+      </div>
+      <div class="check-row">
+        <label><input type="checkbox" id="excluir-feria" checked> Excluir feria judicial (enero y julio)</label>
+        <label><input type="checkbox" id="guardar-plazo"> Guardar en mis plazos</label>
+      </div>
+      <button class="btn btn-primary" onclick="calcularPlazo()">Calcular vencimiento</button>
+      <div id="resultado-plazo" style="display:none"></div>
+    </div>
+    <div class="note-box">
+      <strong style="color:var(--text)">Días hábiles judiciales:</strong> se excluyen sábados, domingos, feriados nacionales, días no laborables con fines turísticos y feria judicial de enero y julio. El cómputo no cuenta el día de inicio (art. 156 CPCCN). Feriados actualizados según calendario oficial 2026.
+    </div>
+  </div>
+
+  <!-- TAB CALENDARIO -->
+  <div id="tab-calendario" class="tab-content">
+    <div class="card">
+      <div class="cal-header">
+        <button class="cal-nav" onclick="cambiarMes(-1)">&#8592;</button>
+        <span class="cal-title" id="cal-titulo"></span>
+        <button class="cal-nav" onclick="cambiarMes(1)">&#8594;</button>
+      </div>
+      <div class="cal-grid" id="cal-dow"></div>
+      <div class="cal-grid" id="cal-grid" style="margin-top:3px"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green-bg)"></div> Hábil</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--amber-bg)"></div> Feriado</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--violet-bg)"></div> No laborable</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--salmon-bg)"></div> Feria judicial</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--surface2)"></div> Fin de semana</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--blue-bg)"></div> Inicio plazo</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#E0EEFF"></div> En plazo</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--red-bg)"></div> Vencimiento</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB FERIADOS -->
+  <div id="tab-feriados" class="tab-content">
+    <div class="card">
+      <h3>Agregar feriado o día inhábil</h3>
+      <div class="row">
+        <div class="field"><label>Fecha</label><input type="date" id="feriado-fecha"></div>
+        <div class="field"><label>Tipo</label>
+          <select id="feriado-tipo">
+            <option value="feriado">Feriado nacional</option>
+            <option value="nolaborable">No laborable / Puente</option>
+            <option value="feria">Feria judicial</option>
+          </select>
+        </div>
+        <div class="field"><label>Motivo</label><input type="text" id="feriado-motivo" placeholder="Ej: Feria extraordinaria"></div>
+        <button class="btn btn-primary" onclick="agregarFeriado()" style="align-self:flex-end">Agregar</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Feriados e inhábiles 2026</h3>
+      <p style="font-size:11px;color:var(--text2);margin-bottom:10px">Los marcados con * son oficiales. Podés eliminar los que agregaste manualmente.</p>
+      <div class="feriado-list" id="feriado-list"></div>
+    </div>
+  </div>
+
+  <!-- TAB PLAZOS -->
+  <div id="tab-plazos" class="tab-content">
+    <div class="card">
+      <h3>Plazos guardados</h3>
+      <p id="plazos-empty" style="font-size:13px;color:var(--text2)">Aún no hay plazos guardados. Calculá un plazo y marcá "Guardar en mis plazos".</p>
+      <div class="plazo-list" id="plazo-list" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS_S = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+const FERIADOS_2026 = [
+  { fecha:'2026-01-01', motivo:'Año Nuevo *', tipo:'feriado', fijo:true },
+  { fecha:'2026-02-16', motivo:'Carnaval *', tipo:'feriado', fijo:true },
+  { fecha:'2026-02-17', motivo:'Carnaval *', tipo:'feriado', fijo:true },
+  { fecha:'2026-03-24', motivo:'Día Nacional de la Memoria por la Verdad y la Justicia *', tipo:'feriado', fijo:true },
+  { fecha:'2026-04-02', motivo:'Día del Veterano y de los Caídos en Malvinas *', tipo:'feriado', fijo:true },
+  { fecha:'2026-04-02', motivo:'Jueves Santo *', tipo:'feriado', fijo:true },
+  { fecha:'2026-04-03', motivo:'Viernes Santo *', tipo:'feriado', fijo:true },
+  { fecha:'2026-05-01', motivo:'Día del Trabajador *', tipo:'feriado', fijo:true },
+  { fecha:'2026-05-25', motivo:'Revolución de Mayo *', tipo:'feriado', fijo:true },
+  { fecha:'2026-06-15', motivo:'Paso a la Inmortalidad del Gral. Güemes (trasladado) *', tipo:'feriado', fijo:true },
+  { fecha:'2026-06-20', motivo:'Paso a la Inmortalidad del Gral. Belgrano *', tipo:'feriado', fijo:true },
+  { fecha:'2026-07-09', motivo:'Día de la Independencia *', tipo:'feriado', fijo:true },
+  { fecha:'2026-07-10', motivo:'Día no laborable con fines turísticos *', tipo:'nolaborable', fijo:true },
+  { fecha:'2026-08-17', motivo:'Paso a la Inmortalidad del Gral. San Martín (trasladado) *', tipo:'feriado', fijo:true },
+  { fecha:'2026-10-12', motivo:'Día del Respeto a la Diversidad Cultural *', tipo:'feriado', fijo:true },
+  { fecha:'2026-11-23', motivo:'Día de la Soberanía Nacional (trasladado) *', tipo:'feriado', fijo:true },
+  { fecha:'2026-12-07', motivo:'Día no laborable con fines turísticos *', tipo:'nolaborable', fijo:true },
+  { fecha:'2026-12-08', motivo:'Inmaculada Concepción de María *', tipo:'feriado', fijo:true },
+  { fecha:'2026-12-25', motivo:'Navidad *', tipo:'feriado', fijo:true },
+];
+
+function generarFeriaJudicial(anio) {
+  const dias = [];
+  [[0,31],[6,31]].forEach(([mes, maxD]) => {
+    for (let d = 1; d <= maxD; d++) {
+      const f = new Date(anio, mes, d);
+      if (f.getMonth() !== mes) break;
+      if (f.getDay() !== 0 && f.getDay() !== 6)
+        dias.push({ fecha: fechaStr(f), motivo: `Feria Judicial de ${mes===0?'enero':'julio'} *`, tipo:'feria', fijo:true });
+    }
+  });
+  return dias;
+}
+
+let feriadosExtra = [];
+let plazosGuardados = JSON.parse(localStorage.getItem('plazos') || '[]');
+let calMes = new Date().getMonth();
+let calAnio = new Date().getFullYear();
+let ultimoResultado = null;
+
+function todosLosFeriados() {
+  const anios = [calAnio-1, calAnio, calAnio+1];
+  let base = [...FERIADOS_2026];
+  anios.forEach(a => { if (a !== 2026) base = base.concat(feriadosBase(a)); base = base.concat(generarFeriaJudicial(a)); });
+  return base.concat(feriadosExtra);
+}
+
+function feriadosBase(anio) {
+  const add = (m,d,n,t='feriado') => ({ fecha:`${anio}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`, motivo:n+' *', tipo:t, fijo:true });
+  const ss = semanaSanta(anio);
+  return [
+    add(1,1,'Año Nuevo'), add(2,16,'Carnaval'), add(2,17,'Carnaval'),
+    add(3,24,'Día de la Memoria'), add(4,2,'Día del Veterano'),
+    { fecha:ss.jueves, motivo:'Jueves Santo *', tipo:'feriado', fijo:true },
+    { fecha:ss.viernes, motivo:'Viernes Santo *', tipo:'feriado', fijo:true },
+    add(5,1,'Día del Trabajador'), add(5,25,'Revolución de Mayo'),
+    add(6,20,'Paso a la Inmortalidad del Gral. Belgrano'),
+    add(7,9,'Día de la Independencia'), add(8,17,'Paso a la Inmortalidad del Gral. San Martín'),
+    add(10,12,'Día del Respeto a la Diversidad Cultural'),
+    add(11,20,'Día de la Soberanía Nacional'),
+    add(12,8,'Inmaculada Concepción de María'), add(12,25,'Navidad'),
+  ];
+}
+
+function semanaSanta(y) {
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),dy=((h+l-7*m+114)%31)+1;
+  const p=new Date(y,mo-1,dy),j=new Date(p),v=new Date(p);
+  j.setDate(p.getDate()-3); v.setDate(p.getDate()-2);
+  return { jueves:fechaStr(j), viernes:fechaStr(v) };
+}
+
+function fechaStr(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function formatFecha(s) { if(!s)return''; const[a,m,d]=s.split('-'); return `${d}/${m}/${a}`; }
+
+function getFeriadoInfo(str) { return todosLosFeriados().find(f=>f.fecha===str); }
+function esFeriado(fecha) { const i=getFeriadoInfo(fechaStr(fecha)); return i&&(i.tipo==='feriado'||i.tipo==='nolaborable'); }
+function esFeriaJudicial(fecha) {
+  if(!document.getElementById('excluir-feria').checked) return false;
+  const i=getFeriadoInfo(fechaStr(fecha)); return i&&i.tipo==='feria';
+}
+function esHabil(fecha,usarFeria=true) {
+  const dow=fecha.getDay();
+  if(dow===0||dow===6) return false;
+  if(esFeriado(fecha)) return false;
+  if(usarFeria&&esFeriaJudicial(fecha)) return false;
+  return true;
+}
+
+function calcularPlazo() {
+  const ini=document.getElementById('fecha-inicio').value;
+  const dias=parseInt(document.getElementById('cant-dias').value);
+  if(!ini||!dias||dias<1){alert('Completá la fecha de inicio y la cantidad de días.');return;}
+  const usarFeria=document.getElementById('excluir-feria').checked;
+  let cursor=new Date(ini+'T12:00:00'),contados=0;
+  while(contados<dias){cursor.setDate(cursor.getDate()+1);if(esHabil(cursor,usarFeria))contados++;}
+  const nombre=document.getElementById('nombre-plazo').value.trim()||`Plazo ${dias} días hábiles`;
+  ultimoResultado={inicio:ini,vencimiento:fechaStr(cursor),dias,nombre};
+  document.getElementById('resultado-plazo').style.display='block';
+  document.getElementById('resultado-plazo').innerHTML=`<div class="result-box"><div class="result-label">Vencimiento — ${dias} días hábiles desde el ${formatFecha(ini)}</div><div class="result-date">${formatFecha(fechaStr(cursor))}</div><div class="result-name">${nombre}</div></div>`;
+  if(document.getElementById('guardar-plazo').checked) guardarPlazo();
+}
+
+function guardarPlazo() {
+  if(!ultimoResultado) return;
+  if(plazosGuardados.find(p=>p.inicio===ultimoResultado.inicio&&p.dias===ultimoResultado.dias&&p.nombre===ultimoResultado.nombre)) return;
+  plazosGuardados.push({...ultimoResultado,id:Date.now()});
+  localStorage.setItem('plazos',JSON.stringify(plazosGuardados));
+  renderPlazos();
+}
+
+function eliminarPlazo(id) {
+  plazosGuardados=plazosGuardados.filter(p=>p.id!==id);
+  localStorage.setItem('plazos',JSON.stringify(plazosGuardados));
+  renderPlazos();
+}
+
+function renderPlazos() {
+  const list=document.getElementById('plazo-list'),empty=document.getElementById('plazos-empty');
+  if(!plazosGuardados.length){list.style.display='none';empty.style.display='block';return;}
+  list.style.display='block';empty.style.display='none';
+  const hoy=fechaStr(new Date());
+  list.innerHTML=plazosGuardados.map(p=>{
+    const diff=Math.round((new Date(p.vencimiento+'T12:00:00')-new Date(hoy+'T12:00:00'))/86400000);
+    const badge=diff>3?`<span class="badge badge-ok">Faltan ${diff} días</span>`:diff>=0?`<span class="badge badge-vence">Vence en ${diff}d</span>`:`<span class="badge badge-vencido">Venció hace ${-diff}d</span>`;
+    return `<div class="plazo-item"><div><div class="plazo-nombre">${p.nombre}</div><div class="plazo-meta">Inicio: ${formatFecha(p.inicio)} · ${p.dias} días hábiles</div></div><div style="display:flex;align-items:center;gap:8px"><div class="plazo-vence">${formatFecha(p.vencimiento)}</div>${badge}<button class="badge-rm" onclick="eliminarPlazo(${p.id})">✕</button></div></div>`;
+  }).join('');
+}
+
+function agregarFeriado() {
+  const f=document.getElementById('feriado-fecha').value;
+  const m=document.getElementById('feriado-motivo').value.trim()||'Inhábil';
+  const t=document.getElementById('feriado-tipo').value;
+  if(!f){alert('Seleccioná una fecha.');return;}
+  feriadosExtra.push({fecha:f,motivo:m,tipo:t,fijo:false});
+  document.getElementById('feriado-fecha').value='';
+  document.getElementById('feriado-motivo').value='';
+  renderFeriados();renderCal();
+}
+
+function eliminarFeriado(idx) { feriadosExtra.splice(idx,1); renderFeriados();renderCal(); }
+
+function renderFeriados() {
+  const list=document.getElementById('feriado-list');
+  const oficiales=[...FERIADOS_2026];
+  const feriaResumen=[
+    {fecha:'01/01 al 31/01/2026',motivo:'Feria Judicial de enero 2026 *',tipo:'feria',fijo:true},
+    {fecha:'01/07 al 31/07/2026',motivo:'Feria Judicial de julio 2026 *',tipo:'feria',fijo:true},
+  ];
+  const extras=feriadosExtra.map((f,i)=>({...f,idx:i}));
+  const todos=[...oficiales,...feriaResumen,...extras];
+  list.innerHTML=todos.map(f=>{
+    const tc={feriado:'tipo-feriado',nolaborable:'tipo-nolaborable',feria:'tipo-feria'}[f.tipo]||'tipo-feriado';
+    const tl={feriado:'Feriado',nolaborable:'No laborable',feria:'Feria judicial'}[f.tipo]||'';
+    const fechaD=f.fecha.includes('/')||f.fecha.includes(' al ')?f.fecha:formatFecha(f.fecha);
+    const rm=!f.fijo?`<button class="badge-rm" onclick="eliminarFeriado(${f.idx})">✕</button>`:'';
+    return `<div class="feriado-item"><div class="feriado-info"><div class="feriado-fecha">${fechaD}</div><div class="feriado-motivo">${f.motivo}</div></div><span class="feriado-tipo ${tc}">${tl}</span>${rm}</div>`;
+  }).join('');
+}
+
+function cambiarMes(delta) {
+  calMes+=delta;
+  if(calMes>11){calMes=0;calAnio++;}
+  if(calMes<0){calMes=11;calAnio--;}
+  renderCal();
+}
+
+function renderCal() {
+  document.getElementById('cal-titulo').textContent=`${MESES[calMes]} ${calAnio}`;
+  document.getElementById('cal-dow').innerHTML=DIAS_S.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  const primer=new Date(calAnio,calMes,1),ultimo=new Date(calAnio,calMes+1,0);
+  let celdas=[];
+  for(let i=0;i<primer.getDay();i++) celdas.push({fecha:new Date(calAnio,calMes,-primer.getDay()+i+1),otro:true});
+  for(let d=1;d<=ultimo.getDate();d++) celdas.push({fecha:new Date(calAnio,calMes,d),otro:false});
+  while(celdas.length%7!==0){const l=celdas[celdas.length-1].fecha,n=new Date(l);n.setDate(l.getDate()+1);celdas.push({fecha:n,otro:true});}
+  const hoyStr=fechaStr(new Date());
+  const inicioSet=new Set(plazosGuardados.map(p=>p.inicio));
+  const venceSet=new Set(plazosGuardados.map(p=>p.vencimiento));
+  const ranges=plazosGuardados.map(p=>({ini:p.inicio,fin:p.vencimiento}));
+  const todos=todosLosFeriados();
+  document.getElementById('cal-grid').innerHTML=celdas.map(({fecha,otro})=>{
+    const str=fechaStr(fecha),dow=fecha.getDay();
+    let cls='cal-day';
+    if(otro) cls+=' otro-mes';
+    else if(venceSet.has(str)) cls+=' vencimiento';
+    else if(inicioSet.has(str)) cls+=' inicio-plazo';
+    else if(ranges.some(r=>str>r.ini&&str<r.fin)) cls+=' en-plazo';
+    else if(dow===0||dow===6) cls+=' fin-semana';
+    else {
+      const info=todos.find(f=>f.fecha===str);
+      if(info&&info.tipo==='feria') cls+=' feria';
+      else if(info&&info.tipo==='nolaborable') cls+=' nolaborable';
+      else if(info&&info.tipo==='feriado') cls+=' feriado';
+      else cls+=' habil';
+    }
+    if(str===hoyStr) cls+=' hoy';
+    const info=todos.find(f=>f.fecha===str);
+    const dot=info&&!otro?'<div class="dot"></div>':'';
+    const title=info?`title="${info.motivo}"`:'';
+    return `<div class="${cls}" ${title}>${fecha.getDate()}${dot}</div>`;
+  }).join('');
+}
+
+function showTab(id,event) {
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(event) event.target.classList.add('active');
+  if(id==='calendario') renderCal();
+  if(id==='feriados') renderFeriados();
+  if(id==='plazos') renderPlazos();
+}
+
+document.getElementById('fecha-inicio').value=fechaStr(new Date());
+renderCal();
+renderPlazos();
+</script>
+</body>
+</html>
