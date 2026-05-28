@@ -288,6 +288,12 @@
   .badge-ok { background: var(--green-bg); color: var(--green); }
   .badge-vence { background: var(--amber-bg); color: var(--amber); }
   .badge-vencido { background: var(--red-bg); color: var(--red); }
+  .sync-status {
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 12px;
+    font-family: 'DM Mono', monospace;
+  }
 </style>
 </head>
 <body>
@@ -377,6 +383,7 @@
   <div id="tab-plazos" class="tab-content">
     <div class="card">
       <h3>Plazos guardados</h3>
+      <p class="sync-status" id="sync-status">Conectando con Notion...</p>
       <p id="plazos-empty" style="font-size:13px;color:var(--text2)">Aún no hay plazos guardados. Calculá un plazo y marcá "Guardar en mis plazos".</p>
       <div class="plazo-list" id="plazo-list" style="display:none"></div>
     </div>
@@ -423,10 +430,84 @@ function generarFeriaJudicial(anio) {
 }
 
 let feriadosExtra = [];
-let plazosGuardados = JSON.parse(localStorage.getItem('plazos') || '[]');
+const PLAZOS_STORAGE_KEY = 'plazos';
+const PLAZOS_MIGRATED_KEY = 'plazosMigradosANotionV1';
+let plazosGuardados = [];
+let plazosSyncDisponible = true;
 let calMes = new Date().getMonth();
 let calAnio = new Date().getFullYear();
 let ultimoResultado = null;
+
+function setSyncStatus(texto) {
+  const el = document.getElementById('sync-status');
+  if (el) el.textContent = texto;
+}
+
+function leerPlazosLocales() {
+  try {
+    return JSON.parse(localStorage.getItem(PLAZOS_STORAGE_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function guardarPlazosLocales() {
+  localStorage.setItem(PLAZOS_STORAGE_KEY, JSON.stringify(plazosGuardados));
+}
+
+function mismoPlazo(a, b) {
+  return a.inicio === b.inicio && Number(a.dias) === Number(b.dias) && a.nombre === b.nombre;
+}
+
+async function apiPlazos(path = '', options = {}) {
+  const res = await fetch(`/api/plazos${path}`, {
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.status === 204 ? null : res.json();
+}
+
+async function cargarPlazos() {
+  setSyncStatus('Conectando con Notion...');
+  try {
+    plazosGuardados = await apiPlazos();
+    plazosSyncDisponible = true;
+    setSyncStatus('Sincronizado con Notion');
+    await migrarPlazosLocales();
+  } catch (error) {
+    plazosSyncDisponible = false;
+    plazosGuardados = leerPlazosLocales();
+    setSyncStatus('Modo local: no se pudo conectar con Notion');
+    console.warn('No se pudo cargar Notion, usando localStorage.', error);
+  }
+  renderPlazos();
+  renderCal();
+}
+
+async function migrarPlazosLocales() {
+  if (localStorage.getItem(PLAZOS_MIGRATED_KEY)) return;
+  const locales = leerPlazosLocales();
+  const pendientes = locales.filter(local => !plazosGuardados.some(remoto => mismoPlazo(remoto, local)));
+  if (!pendientes.length) {
+    localStorage.setItem(PLAZOS_MIGRATED_KEY, '1');
+    return;
+  }
+  setSyncStatus(`Migrando ${pendientes.length} plazo(s) locales a Notion...`);
+  for (const plazo of pendientes) {
+    const creado = await crearPlazoEnNotion(plazo);
+    plazosGuardados.push(creado);
+  }
+  localStorage.setItem(PLAZOS_MIGRATED_KEY, '1');
+  setSyncStatus('Sincronizado con Notion');
+}
+
+async function crearPlazoEnNotion(plazo) {
+  return apiPlazos('', {
+    method: 'POST',
+    body: JSON.stringify(plazo),
+  });
+}
 
 function todosLosFeriados() {
   const anios = [calAnio-1, calAnio, calAnio+1];
@@ -490,18 +571,47 @@ function calcularPlazo() {
   if(document.getElementById('guardar-plazo').checked) guardarPlazo();
 }
 
-function guardarPlazo() {
+async function guardarPlazo() {
   if(!ultimoResultado) return;
   if(plazosGuardados.find(p=>p.inicio===ultimoResultado.inicio&&p.dias===ultimoResultado.dias&&p.nombre===ultimoResultado.nombre)) return;
-  plazosGuardados.push({...ultimoResultado,id:Date.now()});
-  localStorage.setItem('plazos',JSON.stringify(plazosGuardados));
+  const temporal = {...ultimoResultado,id:Date.now()};
+  if (plazosSyncDisponible) {
+    try {
+      const creado = await crearPlazoEnNotion(ultimoResultado);
+      plazosGuardados.push(creado);
+      setSyncStatus('Guardado en Notion');
+    } catch (error) {
+      plazosSyncDisponible = false;
+      plazosGuardados.push(temporal);
+      guardarPlazosLocales();
+      setSyncStatus('Modo local: no se pudo guardar en Notion');
+      console.warn('No se pudo guardar en Notion, usando localStorage.', error);
+    }
+  } else {
+    plazosGuardados.push(temporal);
+    guardarPlazosLocales();
+  }
   renderPlazos();
+  renderCal();
 }
 
-function eliminarPlazo(id) {
+async function eliminarPlazo(id) {
+  const anterior = [...plazosGuardados];
   plazosGuardados=plazosGuardados.filter(p=>p.id!==id);
-  localStorage.setItem('plazos',JSON.stringify(plazosGuardados));
+  if (plazosSyncDisponible && typeof id === 'string') {
+    try {
+      await apiPlazos(`?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      setSyncStatus('Sincronizado con Notion');
+    } catch (error) {
+      plazosGuardados = anterior;
+      setSyncStatus('No se pudo eliminar en Notion');
+      console.warn('No se pudo eliminar en Notion.', error);
+    }
+  } else {
+    guardarPlazosLocales();
+  }
   renderPlazos();
+  renderCal();
 }
 
 function renderPlazos() {
@@ -512,7 +622,7 @@ function renderPlazos() {
   list.innerHTML=plazosGuardados.map(p=>{
     const diff=Math.round((new Date(p.vencimiento+'T12:00:00')-new Date(hoy+'T12:00:00'))/86400000);
     const badge=diff>3?`<span class="badge badge-ok">Faltan ${diff} días</span>`:diff>=0?`<span class="badge badge-vence">Vence en ${diff}d</span>`:`<span class="badge badge-vencido">Venció hace ${-diff}d</span>`;
-    return `<div class="plazo-item"><div><div class="plazo-nombre">${p.nombre}</div><div class="plazo-meta">Inicio: ${formatFecha(p.inicio)} · ${p.dias} días hábiles</div></div><div style="display:flex;align-items:center;gap:8px"><div class="plazo-vence">${formatFecha(p.vencimiento)}</div>${badge}<button class="badge-rm" onclick="eliminarPlazo(${p.id})">✕</button></div></div>`;
+    return `<div class="plazo-item"><div><div class="plazo-nombre">${p.nombre}</div><div class="plazo-meta">Inicio: ${formatFecha(p.inicio)} · ${p.dias} días hábiles</div></div><div style="display:flex;align-items:center;gap:8px"><div class="plazo-vence">${formatFecha(p.vencimiento)}</div>${badge}<button class="badge-rm" onclick='eliminarPlazo(${JSON.stringify(p.id)})'>✕</button></div></div>`;
   }).join('');
 }
 
@@ -602,7 +712,7 @@ function showTab(id,event) {
 
 document.getElementById('fecha-inicio').value=fechaStr(new Date());
 renderCal();
-renderPlazos();
+cargarPlazos();
 </script>
 </body>
 </html>
