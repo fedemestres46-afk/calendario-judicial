@@ -476,6 +476,7 @@ async function cargarPlazos() {
     plazosSyncDisponible = true;
     setSyncStatus('Sincronizado con Notion');
     await migrarPlazosLocales();
+    guardarPlazosLocales();
   } catch (error) {
     plazosSyncDisponible = false;
     plazosGuardados = leerPlazosLocales();
@@ -488,15 +489,21 @@ async function cargarPlazos() {
 
 async function migrarPlazosLocales() {
   const locales = leerPlazosLocales();
-  const pendientes = locales.filter(local => !plazosGuardados.some(remoto => mismoPlazo(remoto, local)));
+  const pendientes = locales
+    .filter(local => local && local.inicio && local.vencimiento && local.nombre && Number(local.dias) > 0)
+    .filter(local => !plazosGuardados.some(remoto => mismoPlazo(remoto, local)));
   if (!pendientes.length) {
     localStorage.setItem(PLAZOS_MIGRATED_KEY, '1');
     return;
   }
   setSyncStatus(`Migrando ${pendientes.length} plazo(s) locales a Notion...`);
   for (const plazo of pendientes) {
-    const creado = await crearPlazoEnNotion(plazo);
-    plazosGuardados.push(creado);
+    try {
+      const creado = await crearPlazoEnNotion(plazo);
+      plazosGuardados.push(creado);
+    } catch (error) {
+      console.warn('No se pudo migrar un plazo local a Notion.', error, plazo);
+    }
   }
   localStorage.setItem(PLAZOS_MIGRATED_KEY, '1');
   setSyncStatus('Sincronizado con Notion');
