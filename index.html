@@ -462,6 +462,7 @@ function mismoPlazo(a, b) {
 async function apiPlazos(path = '', options = {}) {
   const res = await fetch(`/api/plazos${path}`, {
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    cache: 'no-store',
     ...options,
   });
   if (!res.ok) throw new Error(await res.text());
@@ -486,7 +487,6 @@ async function cargarPlazos() {
 }
 
 async function migrarPlazosLocales() {
-  if (localStorage.getItem(PLAZOS_MIGRATED_KEY)) return;
   const locales = leerPlazosLocales();
   const pendientes = locales.filter(local => !plazosGuardados.some(remoto => mismoPlazo(remoto, local)));
   if (!pendientes.length) {
@@ -573,23 +573,25 @@ function calcularPlazo() {
 
 async function guardarPlazo() {
   if(!ultimoResultado) return;
-  if(plazosGuardados.find(p=>p.inicio===ultimoResultado.inicio&&p.dias===ultimoResultado.dias&&p.nombre===ultimoResultado.nombre)) return;
+  const existente = plazosGuardados.find(p=>p.inicio===ultimoResultado.inicio&&p.dias===ultimoResultado.dias&&p.nombre===ultimoResultado.nombre);
+  if(existente && typeof existente.id === 'string') return;
   const temporal = {...ultimoResultado,id:Date.now()};
-  if (plazosSyncDisponible) {
-    try {
-      const creado = await crearPlazoEnNotion(ultimoResultado);
+  try {
+    const creado = await crearPlazoEnNotion(ultimoResultado);
+    plazosSyncDisponible = true;
+    if (existente) {
+      plazosGuardados = plazosGuardados.map(p => p === existente ? creado : p);
+    } else {
       plazosGuardados.push(creado);
-      setSyncStatus('Guardado en Notion');
-    } catch (error) {
-      plazosSyncDisponible = false;
-      plazosGuardados.push(temporal);
-      guardarPlazosLocales();
-      setSyncStatus('Modo local: no se pudo guardar en Notion');
-      console.warn('No se pudo guardar en Notion, usando localStorage.', error);
     }
-  } else {
-    plazosGuardados.push(temporal);
     guardarPlazosLocales();
+    setSyncStatus('Guardado en Notion');
+  } catch (error) {
+    plazosSyncDisponible = false;
+    if (!existente) plazosGuardados.push(temporal);
+    guardarPlazosLocales();
+    setSyncStatus('Modo local: no se pudo guardar en Notion');
+    console.warn('No se pudo guardar en Notion, usando localStorage.', error);
   }
   renderPlazos();
   renderCal();
