@@ -429,9 +429,11 @@ function generarFeriaJudicial(anio) {
   return dias;
 }
 
-let feriadosExtra = [];
+const FERIADOS_EXTRA_STORAGE_KEY = 'feriadosExtra';
+let feriadosExtra = leerFeriadosExtra();
 const PLAZOS_STORAGE_KEY = 'plazos';
 const PLAZOS_MIGRATED_KEY = 'plazosMigradosANotionV1';
+const PLAZOS_DELETED_KEY = 'plazosEliminadosANotionV1';
 let plazosGuardados = [];
 let plazosSyncDisponible = true;
 let calMes = new Date().getMonth();
@@ -455,8 +457,39 @@ function guardarPlazosLocales() {
   localStorage.setItem(PLAZOS_STORAGE_KEY, JSON.stringify(plazosGuardados));
 }
 
+function leerFeriadosExtra() {
+  try {
+    return JSON.parse(localStorage.getItem(FERIADOS_EXTRA_STORAGE_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function guardarFeriadosExtra() {
+  localStorage.setItem(FERIADOS_EXTRA_STORAGE_KEY, JSON.stringify(feriadosExtra));
+}
+
 function mismoPlazo(a, b) {
   return a.inicio === b.inicio && Number(a.dias) === Number(b.dias) && a.nombre === b.nombre;
+}
+
+function clavePlazo(plazo) {
+  return `${plazo.inicio || ''}|${Number(plazo.dias) || 0}|${plazo.nombre || ''}`;
+}
+
+function leerPlazosEliminados() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(PLAZOS_DELETED_KEY) || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
+function recordarPlazoEliminado(plazo) {
+  if (!plazo) return;
+  const eliminados = leerPlazosEliminados();
+  eliminados.add(clavePlazo(plazo));
+  localStorage.setItem(PLAZOS_DELETED_KEY, JSON.stringify([...eliminados]));
 }
 
 async function apiPlazos(path = '', options = {}) {
@@ -489,8 +522,10 @@ async function cargarPlazos() {
 
 async function migrarPlazosLocales() {
   const locales = leerPlazosLocales();
+  const eliminados = leerPlazosEliminados();
   const pendientes = locales
     .filter(local => local && local.inicio && local.vencimiento && local.nombre && Number(local.dias) > 0)
+    .filter(local => !eliminados.has(clavePlazo(local)))
     .filter(local => !plazosGuardados.some(remoto => mismoPlazo(remoto, local)));
   if (!pendientes.length) {
     localStorage.setItem(PLAZOS_MIGRATED_KEY, '1');
@@ -606,10 +641,13 @@ async function guardarPlazo() {
 
 async function eliminarPlazo(id) {
   const anterior = [...plazosGuardados];
+  const eliminado = plazosGuardados.find(p=>p.id===id);
   plazosGuardados=plazosGuardados.filter(p=>p.id!==id);
   if (plazosSyncDisponible && typeof id === 'string') {
     try {
       await apiPlazos(`?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      recordarPlazoEliminado(eliminado);
+      guardarPlazosLocales();
       setSyncStatus('Sincronizado con Notion');
     } catch (error) {
       plazosGuardados = anterior;
@@ -617,6 +655,7 @@ async function eliminarPlazo(id) {
       console.warn('No se pudo eliminar en Notion.', error);
     }
   } else {
+    recordarPlazoEliminado(eliminado);
     guardarPlazosLocales();
   }
   renderPlazos();
@@ -641,12 +680,17 @@ function agregarFeriado() {
   const t=document.getElementById('feriado-tipo').value;
   if(!f){alert('Seleccioná una fecha.');return;}
   feriadosExtra.push({fecha:f,motivo:m,tipo:t,fijo:false});
+  guardarFeriadosExtra();
   document.getElementById('feriado-fecha').value='';
   document.getElementById('feriado-motivo').value='';
   renderFeriados();renderCal();
 }
 
-function eliminarFeriado(idx) { feriadosExtra.splice(idx,1); renderFeriados();renderCal(); }
+function eliminarFeriado(idx) {
+  feriadosExtra.splice(idx,1);
+  guardarFeriadosExtra();
+  renderFeriados();renderCal();
+}
 
 function renderFeriados() {
   const list=document.getElementById('feriado-list');
