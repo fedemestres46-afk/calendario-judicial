@@ -321,14 +321,20 @@
         <div class="field"><label>Nombre del plazo (opcional)</label><input type="text" id="nombre-plazo" placeholder="Ej: Contestación demanda"></div>
       </div>
       <div class="check-row">
-        <label><input type="checkbox" id="excluir-feria" checked> Excluir feria judicial (enero y julio)</label>
+        <label><input type="checkbox" id="excluir-feria" checked> Excluir feria judicial configurada</label>
         <label><input type="checkbox" id="guardar-plazo"> Guardar en mis plazos</label>
+      </div>
+      <div class="row">
+        <div class="field"><label>Feria enero desde</label><input type="date" id="feria-enero-desde"></div>
+        <div class="field"><label>Feria enero hasta</label><input type="date" id="feria-enero-hasta"></div>
+        <div class="field"><label>Feria julio desde</label><input type="date" id="feria-julio-desde"></div>
+        <div class="field"><label>Feria julio hasta</label><input type="date" id="feria-julio-hasta"></div>
       </div>
       <button class="btn btn-primary" onclick="calcularPlazo()">Calcular vencimiento</button>
       <div id="resultado-plazo" style="display:none"></div>
     </div>
     <div class="note-box">
-      <strong style="color:var(--text)">Días hábiles judiciales:</strong> se excluyen sábados, domingos, feriados nacionales, días no laborables con fines turísticos y feria judicial de enero y julio. El cómputo no cuenta el día de inicio (art. 156 CPCCN). Feriados actualizados según calendario oficial 2026.
+      <strong style="color:var(--text)">Días hábiles judiciales:</strong> se excluyen sábados, domingos, feriados nacionales, días no laborables con fines turísticos y las ferias judiciales que cargues manualmente. Si las fechas de feria quedan vacías, no se excluye feria judicial. El cómputo no cuenta el día de inicio (art. 156 CPCCN).
     </div>
   </div>
 
@@ -418,18 +424,27 @@ const FERIADOS_2026 = [
 
 function generarFeriaJudicial(anio) {
   const dias = [];
-  [[0,31],[6,31]].forEach(([mes, maxD]) => {
-    for (let d = 1; d <= maxD; d++) {
-      const f = new Date(anio, mes, d);
-      if (f.getMonth() !== mes) break;
-      if (f.getDay() !== 0 && f.getDay() !== 6)
-        dias.push({ fecha: fechaStr(f), motivo: `Feria Judicial de ${mes===0?'enero':'julio'} *`, tipo:'feria', fijo:true });
+  [
+    { nombre: 'enero', desde: feriaConfig.eneroDesde, hasta: feriaConfig.eneroHasta },
+    { nombre: 'julio', desde: feriaConfig.julioDesde, hasta: feriaConfig.julioHasta },
+  ].forEach(rango => {
+    if (!rango.desde || !rango.hasta) return;
+    let cursor = new Date(rango.desde + 'T12:00:00');
+    const fin = new Date(rango.hasta + 'T12:00:00');
+    if (Number.isNaN(cursor.getTime()) || Number.isNaN(fin.getTime()) || cursor > fin) return;
+    while (cursor <= fin) {
+      if (cursor.getFullYear() === anio && cursor.getDay() !== 0 && cursor.getDay() !== 6) {
+        dias.push({ fecha: fechaStr(cursor), motivo: `Feria Judicial de ${rango.nombre}`, tipo:'feria', fijo:true });
+      }
+      cursor.setDate(cursor.getDate() + 1);
     }
   });
   return dias;
 }
 
+const FERIA_CONFIG_STORAGE_KEY = 'feriaJudicialConfig';
 const FERIADOS_EXTRA_STORAGE_KEY = 'feriadosExtra';
+let feriaConfig = leerFeriaConfig();
 let feriadosExtra = leerFeriadosExtra();
 const PLAZOS_STORAGE_KEY = 'plazos';
 const PLAZOS_MIGRATED_KEY = 'plazosMigradosANotionV1';
@@ -467,6 +482,42 @@ function leerFeriadosExtra() {
 
 function guardarFeriadosExtra() {
   localStorage.setItem(FERIADOS_EXTRA_STORAGE_KEY, JSON.stringify(feriadosExtra));
+}
+
+function leerFeriaConfig() {
+  try {
+    return {
+      eneroDesde: '',
+      eneroHasta: '',
+      julioDesde: '',
+      julioHasta: '',
+      ...JSON.parse(localStorage.getItem(FERIA_CONFIG_STORAGE_KEY) || '{}'),
+    };
+  } catch {
+    return { eneroDesde: '', eneroHasta: '', julioDesde: '', julioHasta: '' };
+  }
+}
+
+function guardarFeriaConfig() {
+  feriaConfig = {
+    eneroDesde: document.getElementById('feria-enero-desde').value,
+    eneroHasta: document.getElementById('feria-enero-hasta').value,
+    julioDesde: document.getElementById('feria-julio-desde').value,
+    julioHasta: document.getElementById('feria-julio-hasta').value,
+  };
+  localStorage.setItem(FERIA_CONFIG_STORAGE_KEY, JSON.stringify(feriaConfig));
+  renderFeriados();
+  renderCal();
+}
+
+function inicializarFeriaConfig() {
+  document.getElementById('feria-enero-desde').value = feriaConfig.eneroDesde || '';
+  document.getElementById('feria-enero-hasta').value = feriaConfig.eneroHasta || '';
+  document.getElementById('feria-julio-desde').value = feriaConfig.julioDesde || '';
+  document.getElementById('feria-julio-hasta').value = feriaConfig.julioHasta || '';
+  ['feria-enero-desde','feria-enero-hasta','feria-julio-desde','feria-julio-hasta'].forEach(id => {
+    document.getElementById(id).addEventListener('change', guardarFeriaConfig);
+  });
 }
 
 function mismoPlazo(a, b) {
@@ -694,10 +745,13 @@ function eliminarFeriado(idx) {
 function renderFeriados() {
   const list=document.getElementById('feriado-list');
   const oficiales=[...FERIADOS_2026];
-  const feriaResumen=[
-    {fecha:'01/01 al 31/01/2026',motivo:'Feria Judicial de enero 2026 *',tipo:'feria',fijo:true},
-    {fecha:'01/07 al 31/07/2026',motivo:'Feria Judicial de julio 2026 *',tipo:'feria',fijo:true},
-  ];
+  const feriaResumen=[];
+  if (feriaConfig.eneroDesde && feriaConfig.eneroHasta) {
+    feriaResumen.push({fecha:`${formatFecha(feriaConfig.eneroDesde)} al ${formatFecha(feriaConfig.eneroHasta)}`,motivo:'Feria Judicial de enero',tipo:'feria',fijo:true});
+  }
+  if (feriaConfig.julioDesde && feriaConfig.julioHasta) {
+    feriaResumen.push({fecha:`${formatFecha(feriaConfig.julioDesde)} al ${formatFecha(feriaConfig.julioHasta)}`,motivo:'Feria Judicial de julio',tipo:'feria',fijo:true});
+  }
   const extras=feriadosExtra.map((f,i)=>({...f,idx:i}));
   const todos=[...oficiales,...feriaResumen,...extras];
   list.innerHTML=todos.map(f=>{
@@ -763,6 +817,7 @@ function showTab(id,event) {
 }
 
 document.getElementById('fecha-inicio').value=fechaStr(new Date());
+inicializarFeriaConfig();
 renderCal();
 cargarPlazos();
 </script>
