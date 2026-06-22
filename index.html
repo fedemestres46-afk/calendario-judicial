@@ -508,7 +508,6 @@ async function cargarPlazos() {
     plazosGuardados = await apiPlazos();
     plazosSyncDisponible = true;
     setSyncStatus('Sincronizado con Notion');
-    await migrarPlazosLocales();
     guardarPlazosLocales();
   } catch (error) {
     plazosSyncDisponible = false;
